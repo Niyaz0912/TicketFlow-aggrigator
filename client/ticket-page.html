@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ваш билет - Kostanay Music Fest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .ticket-header {
+            background: #ff5722;
+            color: white;
+            text-align: center;
+            padding: 25px;
+            position: relative;
+        }
+        
+        .ticket-header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .ticket-content {
+            padding: 30px;
+        }
+        
+        .event-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-group {
+            margin-bottom: 15px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff5722;
+            text-align: right;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .terms {
+            margin-top: 30px;
+        }
+        
+        .terms h3 {
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+        }
+        
+        .terms ol {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .terms li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .contact-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            padding: 15px;
+            background: #333;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+        
+        .qr-code {
+            width: 150px;
+            height: 150px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .qr-code::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, #000 10px, transparent 10px, transparent 20px, #000 20px, #000 30px, transparent 30px, transparent 40px, #000 40px, #000 50px, transparent 50px, transparent 60px, #000 60px, #000 70px, transparent 70px, transparent 80px, #000 80px, #000 90px, transparent 90px, transparent 100px, #000 100px, #000 110px, transparent 110px, transparent 120px, #000 120px, #000 130px, transparent 130px, transparent 140px, #000 140px),
+                linear-gradient(0deg, #000 10px, transparent 10px, transparent 20px, #000 20px, #000 30px, transparent 30px, transparent 40px, #000 40px, #000 50px, transparent 50px, transparent 60px, #000 60px, #000 70px, transparent 70px, transparent 80px, #000 80px, #000 90px, transparent 90px, transparent 100px, #000 100px, #000 110px, transparent 110px, transparent 120px, #000 120px, #000 130px, transparent 130px, transparent 140px, #000 140px);
+            background-size: 150px 150px;
+            opacity: 0.8;
+        }
+        
+        .qr-code::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #000;
+            border-radius: 10px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .ticket-id {
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 1px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3a86ff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2a75f0;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        @media (max-width: 600px) {
+            .event-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .ticket-header h1 {
+                font-size: 24px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+        
+        /* Стили для печати */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: 100%;
+            }
+            
+            .actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="ticket-header">
+            <h1>Kostanay Music Fest</h1>
+        </div>
+        
+        <div class="ticket-content">
+            <div class="event-info">
+                <div>
+                    <div class="info-group">
+                        <div class="info-label">Дата и время:</div>
+                        <div class="info-value">6 сентября в 17:00</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Место проведения:</div>
+                        <div class="info-value">Центральный стадион г. Костанай, г. Костанай, ул.1 Мая 153</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Зал, сектор, ряд, места:</div>
+                        <div class="info-value">Зал, Фанзона</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="info-group">
+                        <div class="info-label">Тип билета:</div>
+                        <div class="info-value">Фанзона</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Стоимость билета:</div>
+                        <div class="price">8 000 тенге</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="qr-section">
+                <div class="qr-code"></div>
+                <div class="ticket-id">ID: KMF-2023-87654321</div>
+            </div>
+            
+            <div class="warning">
+                <p>Вход на мероприятие возможен только один раз и по одному билету.</p>
+                <p>При покупке электронных билетов у третьих лиц, билеты недействительны.</p>
+                <p>Не допускайте копирования электронного билета.</p>
+            </div>
+            
+            <div class="terms">
+                <h3>Условия использования билета:</h3>
+                <ol>
+                    <li>Настоящий электронный билет является документом, подтверждающим ваше право на посещение указанного мероприятия. Пожалуйста, храните его в безопасности и не передавайте его посторонним лицам и не публикуйте фотографии с видимым штрих-кодом билета в социальных сетях.</li>
+                    <li>Электронный билет является действительным на одного предъявителя.</li>
+                    <li>Электронный билет распечатывать не обязательно.</li>
+                    <li>При посещении мероприятия вы обязаны соблюдать все правила и положения, установленные организатором мероприятия и местом проведения. Это включает в себя соблюдение правил безопасности, запрет на пронос алкоголя и наркотиков, а также запрет на насилие, дискриминацию и любое другое неприемлемое поведение.</li>
+                    <li>Организатор мероприятия оставляет за собой право внести изменения в программу, дату, время или место проведения мероприятия без предварительного уведомления.</li>
+                </ol>
+                
+                <div class="contact-info">
+                    <p>Для получения консультации по любым вопросам включая возврат билетов просим обращаться в поддержку клиентов:</p>
+                    <p>+7 (727) 225-10-50, +7 (717) 247-63-50, +7 (771) 936-53-53</p>
+                    <p>help@ticketon.kz</p>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Печать билета
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    <i class="fas fa-home"></i> Вернуться на главную
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            Вход со своими едой и напитками запрещен
+        </div>
+    </div>
+
+    <script>
+        // Добавляем Font Awesome для иконок
+        document.head.innerHTML += '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">';
+        
+        // Функция для получения параметров из URL
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+        
+        // Заполняем данные билета из параметров URL (если есть)
+        document.addEventListener('DOMContentLoaded', function() {
+            const ticketId = getQueryParam('id');
+            const eventDate = getQueryParam('date');
+            const eventTime = getQueryParam('time');
+            const ticketType = getQueryParam('type');
+            const ticketPrice = getQueryParam('price');
+            
+            if (ticketId) {
+                document.querySelector('.ticket-id').textContent = `ID: ${ticketId}`;
+            }
+            
+            if (eventDate && eventTime) {
+                document.querySelector('.info-value').textContent = `${eventDate} в ${eventTime}`;
+            }
+            
+            if (ticketType) {
+                document.querySelectorAll('.info-value')[2].textContent = ticketType;
+            }
+            
+            if (ticketPrice) {
+                document.querySelector('.price').textContent = `${ticketPrice} тенге`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой профиль - TicketFlow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .profile-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+        
+        .profile-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .profile-section {
+            margin-bottom: 30px;
+        }
+        
+        .profile-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            border-color: #3a86ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3a86ff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2a75f0;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3a86ff;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .tab-navigation {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            color: #3a86ff;
+            border-bottom-color: #3a86ff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .password-toggle {
+            position: relative;
+        }
+        
+        .password-toggle i {
+            position: absolute;
+            right: 15px;
+            top: 42px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-navigation {
+                flex-direction: column;
+            }
+            
+            .profile-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo" onclick="window.location.href='/'">Ticket<span>Flow</span></div>
+                <nav>
+                    <ul>
+                        <li><a href="/">Главная</a></li>
+                        <li><a href="/my-tickets">Мои билеты</a></li>
+                        <li><a href="#" onclick="window.history.back()">Назад</a></li>
+                    </ul>
+                </nav>
+                <div class="header-buttons" id="headerButtons">
+                    <!-- Будет заполнено скриптом -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-avatar" id="userAvatar">U</div>
+                <h1>Мой профиль</h1>
+                <p>Управление вашими личными данными и настройками</p>
+            </div>
+            
+            <div id="authRequired" style="display: none;">
+                <div class="alert alert-error">
+                    <h3>Требуется авторизация</h3>
+                    <p>Для просмотра профиля необходимо войти в систему</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/?login=true'">
+                        Войти в систему
+                    </button>
+                </div>
+            </div>
+            
+            <div id="profileContent" style="display: none;">
+                <!-- Статистика -->
+                <div class="profile-card">
+                    <h2>Общая информация</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="ticketsCount">0</div>
+                            <div class="stat-label">Билетов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="eventsCount">0</div>
+                            <div class="stat-label">Мероприятий</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="spentAmount">0 ₽</div>
+                            <div class="stat-label">Куплено билетов на сумму</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Навигация по табам -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="personal">Личные данные</button>
+                    <button class="tab-btn" data-tab="password">Смена пароля</button>
+
+                </div>
+
+                <!-- Уведомления -->
+                <div id="alertSuccess" class="alert alert-success" style="display: none;"></div>
+                <div id="alertError" class="alert alert-error" style="display: none;"></div>
+
+                <!-- Таб: Личные данные -->
+                <div class="tab-content active" id="tab-personal">
+                    <div class="profile-card">
+                        <h3>Личная информация</h3>
+                        <form id="personalForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="firstName">Имя</label>
+                                    <input type="text" id="firstName" name="firstName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="lastName">Фамилия</label>
+                                    <input type="text" id="lastName" name="lastName">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="phone">Телефон</label>
+                                <input type="tel" id="phone" name="phone" placeholder="+7 (777) 777-77-77">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Таб: Смена пароля -->
+                <div class="tab-content" id="tab-password">
+                    <div class="profile-card">
+                        <h3>Смена пароля</h3>
+                        <form id="passwordForm">
+                            <div class="form-group password-toggle">
+                                <label for="currentPassword">Текущий пароль</label>
+                                <input type="password" id="currentPassword" name="currentPassword" required>
+                                <i class="fas fa-eye" onclick="togglePassword('currentPassword')"></i>
+                            </div>
+                            
+                            <div class="form-group password-toggle">
+                                <label for="newPassword">Новый пароль</label>
+                                <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                                <i class="fas fa-eye" onclick="togglePassword('newPassword')"></i>
+                            </div>
+                            
+                            <div class="form-group password-toggle">
+                                <label for="confirmPassword">Подтвердите новый пароль</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+                                <i class="fas fa-eye" onclick="togglePassword('confirmPassword')"></i>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Сменить пароль</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Таб: Адрес -->
+                <div class="tab-content" id="tab-address">
+                    <div class="profile-card">
+                        <h3>Адрес доставки</h3>
+                        <form id="addressForm">
+                            <div class="form-group">
+                                <label for="country">Страна</label>
+                                <input type="text" id="country" name="country" value="Россия">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="city">Город</label>
+                                <input type="text" id="city" name="city" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="street">Улица</label>
+                                <input type="text" id="street" name="street" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="postalCode">Почтовый индекс</label>
+                                    <input type="text" id="postalCode" name="postalCode">
+                                </div>
+                                <div class="form-group">
+                                    <label for="apartment">Квартира/Офис</label>
+                                    <input type="text" id="apartment" name="apartment">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Сохранить адрес</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Опасная зона -->
+                <div class="profile-card">
+                    <h3 style="color: #dc3545;">Опасная зона</h3>
+                    <div class="form-group">
+                        <p>Удаление аккаунта - необратимая операция. Все ваши данные будут безвозвратно удалены.</p>
+                        <button class="btn btn-danger" onclick="showDeleteConfirm()">
+                            <i class="fas fa-trash"></i> Удалить аккаунт
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>О нас</h3>
+                    <ul>
+                        <li><a href="#">О компании</a></li>
+                        <li><a href="#">Контакты</a></li>
+                        <li><a href="#">Партнеры</a></li>
+                        <li><a href="#">Рекламодателям</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Помощь</h3>
+                    <ul>
+                        <li><a href="#">Как купить билет</a></li>
+                        <li><a href="#">Вопросы и ответы</a></li>
+                        <li><a href="#">Правила использования</a></li>
+                        <li><a href="#">Политика конфиденциальности</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Контакты</h3>
+                    <ul>
+                        <li>Телефон: +7 (747) 408 6911</li>
+                        <li>Email: info@ticketflow.kz</li>
+                        <li>Адрес: Актобе, ул. Абылхаир-хана, д. 52а</li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Подписка</h3>
+                    <p>Подпишитесь на рассылку, чтобы получать информацию о новых мероприятиях и акциях</p>
+                    <form>
+                        <input type="email" placeholder="Ваш email" style="padding: 10px; width: 100%; margin: 10px 0; border-radius: 4px; border: none;">
+                        <button type="submit" class="search-btn" style="margin-top: 10px;">Подписаться</button>
+                    </form>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>© 2023 TicketFlow. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Модальное окно подтверждения удаления -->
+    <div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
+            <h3 style="color: #dc3545; margin-bottom: 20px;">Подтверждение удаления аккаунта</h3>
+            <p>Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.</p>
+            <p>Все ваши данные, включая билеты, будут безвозвратно удалены.</p>
+            <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="hideDeleteModal()">Отмена</button>
+                <button class="btn btn-danger" onclick="deleteAccount()">Удалить аккаунт</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>

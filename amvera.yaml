@@ -1,0 +1,4 @@
+runtime: nodejs
+start: npm start
+env:
+  - MONGO_URI

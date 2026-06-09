@@ -1,0 +1,384 @@
+<!-- client/qr-scanner.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сканер билетов - TicketFlow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .scanner-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .scanner-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .video-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        #qr-video {
+            width: 100%;
+        }
+        
+        .scan-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 4px solid #ff006e;
+            border-radius: 8px;
+
+        }
+        
+        .manual-check {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .ticket-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .ticket-valid {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .ticket-invalid {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .ticket-info {
+            margin-top: 15px;
+        }
+        
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo" onclick="window.location.href='/'">Ticket<span>Flow</span></div>
+                <nav>
+                    <ul>
+                        <li><a href="/">Главная</a></li>
+                        <li><a href="#" onclick="history.back()">Назад</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="scanner-container">
+            <h1>Сканер билетов</h1>
+            
+            <div class="scanner-section">
+                <h2>Сканирование QR-кода</h2>
+                <div class="video-container">
+                    <video id="qr-video"></video>
+                    <div class="scan-frame"></div>
+                </div>
+                <p>Наведите камеру на QR-код билета</p>
+                
+                <div class="action-buttons">
+                    <button id="start-scanner" class="search-btn">
+                        <i class="fas fa-camera"></i> Запустить сканер
+                    </button>
+                    <button id="stop-scanner" class="search-btn" style="display: none;">
+                        <i class="fas fa-stop"></i> Остановить сканер
+                    </button>
+                </div>
+            </div>
+            
+            <div class="scanner-section manual-check">
+                <h2>Проверка по коду</h2>
+                <div class="form-group">
+                    <label for="ticket-code">Код билета:</label>
+                    <input type="text" id="ticket-code" placeholder="Введите код билета" class="form-input">
+                </div>
+                <button onclick="checkTicketManually()" class="search-btn">
+                    <i class="fas fa-search"></i> Проверить билет
+                </button>
+            </div>
+            
+            <div id="ticket-result" class="ticket-result">
+                <h3 id="result-title">Результат проверки</h3>
+                <div id="result-message"></div>
+                <div id="ticket-info" class="ticket-info"></div>
+                <div class="action-buttons">
+                    <button id="use-ticket" class="search-btn" style="display: none;">
+                        <i class="fas fa-check"></i> Использовать билет
+                    </button>
+                    <button id="invalidate-ticket" class="search-btn" style="background: #dc3545; display: none;">
+                        <i class="fas fa-times"></i> Аннулировать билет
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        
+        let videoStream = null;
+        let scanning = false;
+        let currentTicket = null;
+
+        // Запуск сканера
+        document.getElementById('start-scanner').addEventListener('click', startScanner);
+        document.getElementById('stop-scanner').addEventListener('click', stopScanner);
+
+        async function startScanner() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
+                });
+                
+                const video = document.getElementById('qr-video');
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                
+                videoStream = stream;
+                scanning = true;
+                
+                document.getElementById('start-scanner').style.display = 'none';
+                document.getElementById('stop-scanner').style.display = 'block';
+                
+                requestAnimationFrame(tick);
+                
+            } catch (error) {
+                console.error('Ошибка доступа к камере:', error);
+                alert('Не удалось получить доступ к камере. Проверьте разрешения.');
+            }
+        }
+
+        function stopScanner() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            
+            scanning = false;
+            document.getElementById('start-scanner').style.display = 'block';
+            document.getElementById('stop-scanner').style.display = 'none';
+        }
+
+        function tick() {
+            if (!scanning) return;
+            
+            const video = document.getElementById('qr-video');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    stopScanner();
+                    processQRCode(code.data);
+                }
+            }
+            
+            requestAnimationFrame(tick);
+        }
+
+        async function processQRCode(qrData) {
+            try {
+                const result = await fetch('/api/tickets/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${auth.token}`
+                    },
+                    body: JSON.stringify({ qrData })
+                });
+                
+                const data = await result.json();
+                showTicketResult(data);
+                
+            } catch (error) {
+                console.error('Ошибка обработки QR-кода:', error);
+                showError('Ошибка обработки QR-кода');
+            }
+        }
+
+        async function checkTicketManually() {
+            const ticketCode = document.getElementById('ticket-code').value.trim();
+            
+            if (!ticketCode) {
+                alert('Введите код билета');
+                return;
+            }
+            
+            try {
+                const result = await fetch(`/api/tickets/check/${ticketCode}`, {
+                    headers: {
+                        'Authorization': `Bearer ${auth.token}`
+                    }
+                });
+                
+                const data = await result.json();
+                showTicketResult(data);
+                
+            } catch (error) {
+                console.error('Ошибка проверки билета:', error);
+                showError('Ошибка проверки билета');
+            }
+        }
+
+        function showTicketResult(data) {
+            const resultDiv = document.getElementById('ticket-result');
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+            const ticketInfo = document.getElementById('ticket-info');
+            const useBtn = document.getElementById('use-ticket');
+            const invalidateBtn = document.getElementById('invalidate-ticket');
+            
+            if (data.status === 'success') {
+                currentTicket = data.ticket;
+                
+                if (data.isValid) {
+                    resultDiv.className = 'ticket-result ticket-valid';
+                    resultTitle.innerHTML = '<i class="fas fa-check-circle"></i> Билет действителен';
+                    resultMessage.textContent = 'Этот билет можно использовать для входа.';
+                    
+                    useBtn.style.display = 'block';
+                    invalidateBtn.style.display = 'block';
+                    
+                } else {
+                    resultDiv.className = 'ticket-result ticket-invalid';
+                    resultTitle.innerHTML = '<i class="fas fa-times-circle"></i> Билет недействителен';
+                    resultMessage.textContent = `Статус: ${data.ticket.status}`;
+                    
+                    useBtn.style.display = 'none';
+                    invalidateBtn.style.display = 'block';
+                }
+                
+                // Показываем информацию о билете
+                const eventDate = new Date(data.ticket.event.date).toLocaleDateString('ru-RU');
+                ticketInfo.innerHTML = `
+                    <p><strong>Мероприятие: </strong> ${data.ticket.event.title}</p>
+                    <p><strong>Дата: </strong> ${eventDate} в ${data.ticket.event.time}</p>
+                    <p><strong>Место: </strong> ${data.ticket.event.venue}, ${data.ticket.event.city}</p>
+                    <p><strong>Владелец: </strong> ${data.ticket.user.name}</p>
+                    <p><strong>Место: </strong> ${data.ticket.seat}</p>
+                    <p><strong>Цена: </strong> ${data.ticket.price} тг.</p>
+                `;
+                
+            } else {
+                resultDiv.className = 'ticket-result ticket-invalid';
+                resultTitle.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ошибка';
+                resultMessage.textContent = data.message;
+                ticketInfo.innerHTML = '';
+                
+                useBtn.style.display = 'none';
+                invalidateBtn.style.display = 'none';
+            }
+            
+            resultDiv.style.display = 'block';
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('ticket-result');
+            resultDiv.className = 'ticket-result ticket-invalid';
+            document.getElementById('result-title').innerHTML = '<i class="fas fa-exclamation-circle"></i> Ошибка';
+            document.getElementById('result-message').textContent = message;
+            document.getElementById('ticket-info').innerHTML = '';
+            resultDiv.style.display = 'block';
+        }
+
+        
+
+        // Обработчики для кнопок действий
+        document.getElementById('use-ticket').addEventListener('click', async function() {
+    if (!currentTicket) return;
+
+    try {
+        const response = await fetch(`/api/tickets/${currentTicket.code}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${auth.token}`
+            },
+            body: JSON.stringify({ status: 'Использован' })
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            alert(`Билет ${currentTicket.code} отмечен как использованный`);
+            // Можно обновить UI, скрыть кнопку и т.д.
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    } catch (error) {
+        alert('Ошибка при обновлении статуса билета');
+    }
+});
+
+        document.getElementById('invalidate-ticket').addEventListener('click', async function() {
+            if (!currentTicket) return;
+
+            try {
+        const response = await fetch(`/api/tickets/${currentTicket.code}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${auth.token}`
+            },
+            body: JSON.stringify({ status: 'Недействителен' })
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            alert(`Билет ${currentTicket.code} аннулирован`);
+            // Можно обновить UI, скрыть кнопку и т.д.
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    } catch (error) {
+        alert('Ошибка при обновлении статуса билета');
+    }
+            
+
+        });
+        console.log(navigator.mediaDevices);
+        
+    </script>
+</body>
+</html>

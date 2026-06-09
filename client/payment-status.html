@@ -1,0 +1,59 @@
+<!-- client/payment-status.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Статус платежа</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .pending { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Статус платежа</h1>
+    <div id="payment-status">
+        <p>Загрузка информации о платеже...</p>
+    </div>
+
+    <script>
+        async function checkPaymentStatus() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentId = urlParams.get('paymentId');
+
+            if (!paymentId) {
+                document.getElementById('payment-status').innerHTML = 
+                    '<p class="error">Не указан ID платежа</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/payments/${paymentId}/status`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const statusClass = result.payment.status === 'succeeded' ? 'success' : 
+                                      result.payment.status === 'pending' ? 'pending' : 'error';
+                    
+                    document.getElementById('payment-status').innerHTML = `
+                        <p class="${statusClass}">Статус: ${result.payment.status}</p>
+                        <p>Сумма: ${result.payment.amount} ${result.payment.currency}</p>
+                        <p>Метод: ${result.payment.method}</p>
+                        ${result.payment.status === 'succeeded' ? 
+                            '<p>✅ Билеты успешно оплачены и созданы!</p>' : ''}
+                    `;
+                } else {
+                    document.getElementById('payment-status').innerHTML = 
+                        '<p class="error">Ошибка: ' + result.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('payment-status').innerHTML = 
+                    '<p class="error">Ошибка загрузки статуса платежа</p>';
+            }
+        }
+
+        // Проверяем статус при загрузке
+        checkPaymentStatus();
+    </script>
+</body>
+</html>
