@@ -9,14 +9,11 @@ const multer = require('multer');
 const fs = require('fs');
 const https = require('https');
 var os = require('os');
-require('dotenv').config();
 
-// Подключение моделей
-const User = require('./server/models/User');
-const Event = require('./server/models/Event');
-const Ticket = require('./server/models/Ticket');
-const Payment = require('./server/models/Payment');
-const Attraction = require('./server/models/Attraction');
+
+
+
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,6 +69,149 @@ mongoose.connect('mongodb://localhost:27017/ticketplatform', {
 .then(() => console.log('MongoDB подключена успешно'))
 .catch(err => console.error('Ошибка подключения к MongoDB:', err));
 
+// Модель пользователя
+const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  address: {
+    country: {
+      type: String,
+      default: 'Россия'
+    },
+    city: {
+      type: String,
+      trim: true
+    },
+    street: {
+      type: String,
+      trim: true
+    },
+    postalCode: {
+      type: String,
+      trim: true
+    },
+    apartment: {
+      type: String,
+      trim: true
+    }
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Хеширование пароля перед сохранением
+UserSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    // Хешируем пароль с cost factor 12
+    this.password = await bcrypt.hash(this.password, 12);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Сравнение паролей
+UserSchema.methods.correctPassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+const User = mongoose.model('User', UserSchema);
+
+// Модель платежа
+const PaymentSchema = new mongoose.Schema({
+  paymentId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  orderId: {
+    type: String,
+    required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  eventId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  currency: {
+    type: String,
+    default: 'RUB'
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'succeeded', 'canceled', 'failed'],
+    default: 'pending'
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['stripe', 'yookassa', 'bank_card', 'sberbank', 'qiwi', 'apple_pay', 'google_pay', null],
+    default: null
+  },
+  description: {
+    type: String
+  },
+  tickets: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ticket'
+  }],
+  metadata: {
+    type: mongoose.Schema.Types.Mixed
+  },
+  paymentData: {
+    type: mongoose.Schema.Types.Mixed
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Обновляем дату при изменении
+PaymentSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+const Payment = mongoose.model('Payment', PaymentSchema);
 
 const { YooCheckout } = require('@a2seven/yoo-checkout');
 const fetch = require('node-fetch');
@@ -96,7 +236,119 @@ try {
 // });
 
 // Модель мероприятия
+// Модель мероприятия
+const EventSchema = new mongoose.Schema({
+  eventId: {
+    type: String,
+    unique: true,
+    required: true
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['concert', 'theater', 'sport', 'exhibition', 'conference', 'festival', 'other']
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  time: {
+    type: String,
+    required: true
+  },
+  endTime: {
+    type: String
+  },
+  venue: {
+    type: String,
+    required: true
+  },
+  address: {
+    type: String,
+    required: true
+  },
+  city: {
+    type: String,
+    required: true
+  },
+  country: {
+    type: String,
+    default: 'Казахстан'
+  },
+  capacity: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  image: {
+    type: String,
+    default: ''
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  // ДОБАВЛЯЕМ ПОЛЯ ДЛЯ ЗОНАЛЬНОЙ РАССАДКИ В КОРЕНЬ
+  seatingType: {
+    type: String,
+    enum: ['free', 'zones'],
+    default: 'free'
+  },
+  freeSeating: {
+    price: {
+      type: Number,
+      default: 0
+    }
+  },
+  zones: [{
+    name: {
+      type: String,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    capacity: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    rows: {
+      type: Number,
+      default: 0
+    },
+    seatsPerRow: {
+      type: Number,
+      default: 0
+    },
+    color: {
+      type: String,
+      default: '#3a86ff'
+    }
+  }]
+});
 
+// Добавляем индекс для быстрого поиска по eventId
+EventSchema.index({ eventId: 1 });
+
+
+const Event = mongoose.model('Event', EventSchema);
 
 // Простая заглушка для тестирования без реальных платежей
 const mockPaymentSystem = {
@@ -222,7 +474,143 @@ app.get('/payment/success', async (req, res) => {
 });
 
 // Модель билета с QR-кодом
+const TicketSchema = new mongoose.Schema({
+  code: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  event: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['Активен', 'Использован', 'Недействителен'],
+    default: 'Активен'
+  },
+  purchaseDate: {
+    type: Date,
+    default: Date.now
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  seat: {
+    type: String,
+    default: ''
+  },
+  zone: {
+    type: String,
+    default: 'free'
+  },
+  qrCode: {
+    type: String,
+    default: ''
+  },
+  qrCodeData: {
+    type: String,
+    default: ''
+  },
+  seatRow: { type: Number },
+  seatNumber: { type: Number },
+  section: { type: String }
+});
 
+// Добавляем метод для проверки занятости места
+EventSchema.methods.isSeatTaken = async function(section, row, seat) {
+  const count = await Ticket.countDocuments({
+    event: this._id,
+    section: section,
+    seatRow: row,
+    seatNumber: seat,
+    status: { $in: ['Активен', 'Забронирован'] }
+  });
+  return count > 0;
+};
+
+// Генерация данных для QR-кода
+TicketSchema.methods.generateQRData = function() {
+  return JSON.stringify({
+    ticketId: this._id.toString(),
+    code: this.code,
+    event: this.event.toString(),
+    userId: this.user.toString(),
+    purchaseDate: this.purchaseDate.toISOString(),
+    status: this.status
+  });
+};
+
+// Добавляем индекс для быстрого поиска по eventId
+TicketSchema.index({ eventId: 1 });
+TicketSchema.index({ code: 1 });
+
+// Модифицируем хук для генерации QR-кода
+TicketSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    try {
+      // Генерируем данные для QR-кода
+      this.qrCodeData = this.generateQRData();
+      
+      // Генерируем QR-код
+      const qrCodeFileName = `ticket-${this.code}-${Date.now()}.png`;
+      const qrCodePath = path.join(qrCodesDir, qrCodeFileName);
+      
+      await QRCode.toFile(qrCodePath, this.qrCodeData, {
+        color: {
+          dark: '#000000', // Черные модули
+          light: '#FFFFFF' // Белый фон
+        },
+        width: 300,
+        height: 300,
+        margin: 1
+      });
+      
+      // Сохраняем путь к QR-коду
+      this.qrCode = `/qr-codes/${qrCodeFileName}`;
+      
+    } catch (error) {
+      console.error('Ошибка генерации QR-кода:', error);
+      // Не прерываем сохранение билета если QR-код не сгенерировался
+    }
+  }
+  next();
+});
+
+// Генерация уникального кода билета (6 символов)
+const generateTicketCode = async () => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code;
+  let isUnique = false;
+  
+  while (!isUnique) {
+    code = '';
+    for (let i = 0; i < 6; i++) {
+      code += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    
+    // Проверяем уникальность кода в базе данных
+    const existingTicket = await Ticket.findOne({ code });
+    if (!existingTicket) {
+      isUnique = true;
+    }
+  }
+  
+  return code;
+};
+
+// Добавляем индекс для быстрого поиска по eventId
+
+TicketSchema.index({ code: 1 });
+
+const Ticket = mongoose.model('Ticket', TicketSchema);
 
 // JWT секретный ключ
 const JWT_SECRET = 'your-super-secret-jwt-key-here-change-in-production';
@@ -1748,17 +2136,6 @@ app.get('/api/events/popular', async (req, res) => {
   }
 });
 
-// Чиним покупку билетов
-
-const generateTicketCode = async () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code, existing;
-  do {
-    code = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-    existing = await Ticket.findOne({ code });
-  } while (existing);
-  return code;
-};
 
 // Покупка билета - ОБНОВИТЕ ЭТОТ МАРШРУТ
 app.post('/api/tickets/purchase', authenticateToken, async (req, res) => {
