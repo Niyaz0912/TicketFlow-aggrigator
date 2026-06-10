@@ -65,12 +65,8 @@ const requireAdminOrOrganizer = async (req, res, next) => {
 };
 
 // Подключение к MongoDB
-mongoose.connect('mongodb://localhost:27017/ticketplatform', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB подключена успешно'))
-.catch(err => console.error('Ошибка подключения к MongoDB:', err));
+const connectDB = require('./server/config/database');
+connectDB();
 
 
 const { YooCheckout } = require('@a2seven/yoo-checkout');
@@ -834,79 +830,7 @@ app.get('/admin', async (req, res) => {
 // Маршруты API
 
 // Регистрация - запись в MongoDB
-app.post('/api/register', async (req, res) => {
-  try {
-    const { name, email, password, isAdmin } = req.body;
 
-    // Валидация входных данных
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Пожалуйста, заполните все обязательные поля'
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Пароль должен содержать не менее 6 символов'
-      });
-    }
-
-    // Проверка на существующего пользователя в MongoDB
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Пользователь с таким email уже существует'
-      });
-    }
-
-    // Создание пользователя в MongoDB
-    const newUser = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password, // Пароль будет автоматически захэширован благодаря pre-save хуку
-      isAdmin: isAdmin || false
-    });
-
-    // Генерация JWT токена
-    const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: '7d' });
-
-    // Убираем пароль из ответа
-    const userResponse = {
-      _id: newUser._id,
-      name: newUser.name,
-      email: newUser.email,
-      isAdmin: newUser.isAdmin,
-      createdAt: newUser.createdAt
-    };
-
-    res.status(201).json({
-      status: 'success',
-      message: 'Пользователь успешно зарегистрирован',
-      token,
-      user: userResponse
-    });
-
-    console.log(`Новый пользователь зарегистрирован: ${userResponse.email}`);
-
-  } catch (error) {
-    console.error('Ошибка при регистрации:', error);
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Пользователь с таким email уже существует'
-      });
-    }
-    
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при регистрации'
-    });
-  }
-});
 // Получение статистики по билетам
 app.get('/api/admin/tickets/stats', authenticateToken, async (req, res) => {
   try {
@@ -1024,68 +948,7 @@ app.get('/api/admin/tickets/search', authenticateToken, async (req, res) => {
 });
 
 // Вход - проверка в MongoDB
-app.post('/api/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
 
-    // Проверка email и пароля
-    if (!email || !password) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Пожалуйста, укажите email и пароль'
-      });
-    }
-
-    // Поиск пользователя в MongoDB и проверка пароля
-    // Явно запрашиваем поле password, так как по умолчанию оно исключено из выборки
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    
-    if (!user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Неверный email или пароль'
-      });
-    }
-
-    // Проверка пароля с помощью метода correctPassword
-    const isPasswordCorrect = await user.correctPassword(password);
-    
-    if (!isPasswordCorrect) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Неверный email или пароль'
-      });
-    }
-
-    // Генерация JWT токена
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
-
-    // Убираем пароль из ответа
-    const userResponse = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      createdAt: user.createdAt
-    };
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Вход выполнен успешно',
-      token,
-      user: userResponse
-    });
-
-    console.log(`Пользователь вошел в систему: ${userResponse.email}`);
-
-  } catch (error) {
-    console.error('Ошибка при входе:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при входе в систему'
-    });
-  }
-});
 
 // Получение мероприятия по eventId
 app.get('/api/events/id/:eventId', async (req, res) => {
@@ -1150,37 +1013,6 @@ app.get('/event/:eventId/tickets', async (req, res) => {
 });
 
 // Получение текущего пользователя - проверка в MongoDB
-app.get('/api/me', authenticateToken, async (req, res) => {
-  try {
-    // Пользователь уже добавлен в req в middleware authenticateToken
-    // Но обновляем данные из базы на случай изменений
-    const currentUser = await User.findById(req.user._id);
-    
-    if (!currentUser) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Пользователь не найден'
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      user: {
-        _id: currentUser._id,
-        name: currentUser.name,
-        email: currentUser.email,
-        isAdmin: currentUser.isAdmin,
-        createdAt: currentUser.createdAt
-      }
-    });
-  } catch (error) {
-    console.error('Ошибка при получении данных пользователя:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении данных пользователя'
-    });
-  }
-});
 
 // Маршрут для получения всех мероприятий (должен быть в server.js)
 app.get('/api/admin/events', authenticateToken, async (req, res) => {
@@ -2231,6 +2063,10 @@ app.get('/api/events/category/:category', async (req, res) => {
 app.use('/api/tickets/scan', authenticateToken, requireAdminOrOrganizer);
 app.use('/api/tickets/check/:ticketCode', authenticateToken, requireAdminOrOrganizer);
 app.use('/scan-qr', authenticateToken, requireAdminOrOrganizer);
+
+// Подключение роутеров
+const authRoutes = require('./server/routes/authRoutes');
+app.use('/api/auth', authRoutes);
 
 // Страница покупки билета
 app.get('/event/:id/tickets', async (req, res) => {
