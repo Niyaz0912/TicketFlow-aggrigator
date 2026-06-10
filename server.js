@@ -1294,120 +1294,7 @@ const generateTicketCode = async () => {
 };
 
 // Покупка билета - ОБНОВИТЕ ЭТОТ МАРШРУТ
-app.post('/api/tickets/purchase', authenticateToken, async (req, res) => {
-    try {
-        console.log('Получен запрос на покупку билетов:', req.body);
-        
-        const { eventId, quantity = 1, zoneId, zoneName } = req.body;
 
-        // Проверяем обязательные поля
-        if (!eventId) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'ID мероприятия обязательно'
-            });
-        }
-
-        // Проверяем валидность eventId
-        if (!mongoose.Types.ObjectId.isValid(eventId)) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Неверный формат ID мероприятия'
-            });
-        }
-
-        // Ищем мероприятие
-        const event = await Event.findById(eventId);
-        if (!event) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'Мероприятие не найдено'
-            });
-        }
-
-        // Определяем цену в зависимости от типа рассадки и зоны
-        let ticketPrice = 0;
-        
-        if (event.seatingType === 'free') {
-            ticketPrice = event.freeSeating.price;
-        } else if (event.seatingType === 'zones' && zoneId) {
-            // Находим зону по ID или имени
-            const zone = event.zones.find(z => 
-                z._id.toString() === zoneId || z.name === zoneName
-            );
-            
-            if (!zone) {
-                return res.status(400).json({
-                    status: 'error',
-                    message: 'Указанная зона не найдена'
-                });
-            }
-            ticketPrice = zone.price;
-        } else {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Для зональной рассадки необходимо указать зону'
-            });
-        }
-
-        // Проверяем доступность билетов
-        const ticketsSold = await Ticket.countDocuments({ event: eventId });
-        const availableTickets = event.capacity - ticketsSold;
-
-        if (quantity > availableTickets) {
-            return res.status(400).json({
-                status: 'error',
-                message: `Доступно только ${availableTickets} билетов`
-            });
-        }
-
-        // Создаем билеты
-        const tickets = [];
-        for (let i = 0; i < quantity; i++) {
-            const ticketCode = await generateTicketCode();
-            
-            const ticketData = {
-                code: ticketCode,
-                event: eventId,
-                user: req.user._id,
-                price: ticketPrice,
-                status: 'Активен',
-                purchaseDate: new Date(),
-                zone: zoneName || 'free'
-            };
-
-            // Если есть зональная рассадка с указанием мест
-            if (event.seatingType === 'zones' && zoneName) {
-                const zone = event.zones.find(z => z.name === zoneName);
-                if (zone && zone.rows > 0 && zone.seatsPerRow > 0) {
-                    // Здесь можно добавить логику выбора конкретного места
-                    ticketData.section = zoneName;
-                    // ticketData.seatRow = ...;
-                    // ticketData.seatNumber = ...;
-                }
-            }
-
-            const ticket = await Ticket.create(ticketData);
-            await ticket.populate('event', 'title date time venue');
-            tickets.push(ticket);
-        }
-
-        console.log(`Создано ${tickets.length} билетов для пользователя ${req.user.email}`);
-
-        res.status(201).json({
-            status: 'success',
-            message: `Билет${quantity > 1 ? 'ы' : ''} успешно приобретен${quantity > 1 ? 'ы' : ''}`,
-            tickets: tickets
-        });
-
-    } catch (error) {
-        console.error('Ошибка при покупке билетов:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'Внутренняя ошибка сервера при покупке билетов'
-        });
-    }
-});
 
 // В server.js добавляем endpoint
 app.get('/api/events/:eventId/taken-seats', async (req, res) => {
@@ -1435,38 +1322,7 @@ app.get('/api/events/:eventId/taken-seats', async (req, res) => {
 
 // Получение билетов пользователя
 // Маршрут для получения билетов текущего пользователя
-app.get('/api/tickets/my', authenticateToken, async (req, res) => {
-  try {
-    console.log('Запрос билетов пользователя:', req.user.email);
-    
-    const { status } = req.query;
-    
-    let query = { user: req.user._id };
-    if (status && status !== 'all') {
-      query.status = status;
-    }
-    
-    const tickets = await Ticket.find(query)
-      .populate('event', 'title date time venue city address')
-      .sort({ purchaseDate: -1 });
-    
-    console.log('Найдено билетов:', tickets.length);
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'Билеты успешно получены',
-      tickets: tickets || [] // Всегда возвращаем массив
-    });
-    
-  } catch (error) {
-    console.error('Ошибка при получении билетов пользователя:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении билетов',
-      tickets: [] // Возвращаем пустой массив при ошибке
-    });
-  }
-});
+
 
 // Получение информации о конкретном билете
 app.get('/api/tickets/:ticketCode', async (req, res) => {
@@ -1496,53 +1352,7 @@ app.get('/api/tickets/:ticketCode', async (req, res) => {
 });
 
 // Проверка билета (для организаторов)
-app.post('/api/tickets/validate', authenticateToken, async (req, res) => {
-  try {
-    const { ticketCode } = req.body;
-    
-    if (!ticketCode) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Код билета обязателен'
-      });
-    }
-    
-    const ticket = await Ticket.findOne({ code: ticketCode.toUpperCase() })
-      .populate('event', 'title date time venue city createdBy')
-      .populate('user', 'name email');
-    
-    if (!ticket) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Билет не найден'
-      });
-    }
-    
-    // Проверяем, является ли пользователь организатором мероприятия или администратором
-    const isOrganizer = ticket.event.createdBy.toString() === req.user._id.toString();
-    const isAdmin = req.user.isAdmin;
-    
-    if (!isOrganizer && !isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Недостаточно прав для проверки этого билета'
-      });
-    }
-    
-    res.status(200).json({
-      status: 'success',
-      ticket,
-      isValid: ticket.status === 'Активен'
-    });
-    
-  } catch (error) {
-    console.error('Ошибка при проверке билета:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при проверке билета'
-    });
-  }
-});
+
 
 // Маршрут создания платежа
 app.post('/api/payments/create', authenticateToken, async (req, res) => {
@@ -1752,9 +1562,11 @@ app.use('/scan-qr', authenticateToken, requireAdminOrOrganizer);
 // Подключение роутеров
 const authRoutes = require('./server/routes/authRoutes');
 const eventRoutes = require('./server/routes/eventRoutes');
+const ticketRoutes = require('./server/routes/ticketRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 // Страница покупки билета
 app.get('/event/:id/tickets', async (req, res) => {
@@ -1995,42 +1807,7 @@ app.post('/api/tickets/scan', authenticateToken, async (req, res) => {
 });
 
 // Маршрут для проверки билета по коду
-app.get('/api/tickets/check/:ticketCode', authenticateToken, async (req, res) => {
-  try {
-    const ticket = await Ticket.findOne({ code: req.params.ticketCode.toUpperCase() })
-      .populate('event', 'title date time venue')
-      .populate('user', 'name email');
-    
-    if (!ticket) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Билет не найден'
-      });
-    }
-    
-    res.json({
-      status: 'success',
-      ticket: {
-        code: ticket.code,
-        status: ticket.status,
-        event: ticket.event,
-        user: ticket.user,
-        purchaseDate: ticket.purchaseDate,
-        seat: ticket.seat,
-        price: ticket.price,
-        qrCodeUrl: ticket.qrCode
-      },
-      isValid: ticket.status === 'Активен'
-    });
-    
-  } catch (error) {
-    console.error('Ошибка проверки билета:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка при проверке билета'
-    });
-  }
-});
+
 
 // Функция для генерации QR-кода
 async function generateQRCodeForTicket(ticket) {
