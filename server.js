@@ -951,53 +951,14 @@ app.get('/api/admin/tickets/search', authenticateToken, async (req, res) => {
 
 
 // Получение мероприятия по eventId
-app.get('/api/events/id/:eventId', async (req, res) => {
-  try {
-    const event = await Event.findOne({ eventId: req.params.eventId }).populate('createdBy', 'name');
-    
-    if (!event) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Мероприятие не найдено'
-      });
-    }
-    
-    // Получаем количество проданных билетов
-    const ticketsSold = await Ticket.countDocuments({ event: event._id });
-    const ticketsAvailable = event.capacity - ticketsSold;
-    
-    res.status(200).json({
-      status: 'success',
-      event: {
-        eventId: event.eventId,
-        _id: event._id,
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        time: event.time,
-        venue: event.venue,
-        address: event.address,
-        city: event.city,
-        price: event.price,
-        capacity: event.capacity,
-        ticketsAvailable: ticketsAvailable,
-        image: event.image,
-        organizer: event.createdBy.name,
-        seatingType: event.seatingType || 'free'  // ✅ ДОБАВИТЬ ЭТУ СТРОКУ
-      }
-    });
-  } catch (error) {
-    console.error('Ошибка при получении информации о мероприятии:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера'
-    });
-  }
-});
 
 // Обновляем маршрут для страницы покупки билетов
 app.get('/event/:eventId/tickets', async (req, res) => {
   try {
+    
+    // Подключение роутеров
+    const eventRoutes = require('./server/routes/eventRoutes');
+    app.use('/api/events', eventRoutes);
     const eventId = req.params.eventId;
     const event = await Event.findOne({ eventId: eventId });
     
@@ -1015,44 +976,7 @@ app.get('/event/:eventId/tickets', async (req, res) => {
 // Получение текущего пользователя - проверка в MongoDB
 
 // Маршрут для получения всех мероприятий (должен быть в server.js)
-app.get('/api/admin/events', authenticateToken, async (req, res) => {
-  try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Недостаточно прав'
-      });
-    }
 
-    const events = await Event.find()
-      .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 });
-
-    // Добавляем информацию о проданных билетах для каждого мероприятия
-    const eventsWithTickets = await Promise.all(
-      events.map(async (event) => {
-        const ticketsSold = await Ticket.countDocuments({ event: event._id });
-        return {
-          ...event.toObject(),
-          ticketsSold,
-          ticketsAvailable: event.capacity - ticketsSold
-        };
-      })
-    );
-
-    res.status(200).json({
-      status: 'success',
-      events: eventsWithTickets
-    });
-
-  } catch (error) {
-    console.error('Ошибка при получении мероприятий:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении мероприятий'
-    });
-  }
-});
 
 app.delete("api/admin/events/deletion/:eventId", async (req, res) => {
   try {
@@ -1224,76 +1148,6 @@ app.get('/my-tickets', async (req, res) => {
   }
 });
 
-app.get('/api/events/:id/zones', async (req, res) => {
-  try {
-    const eventId = req.params.id;
-    
-    // Проверяем валидность ID
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Неверный формат ID мероприятия'
-      });
-    }
-
-    // Находим мероприятие
-    const event = await Event.findById(eventId);
-    
-    if (!event) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Мероприятие не найдено'
-      });
-    }
-
-    // Если мероприятие имеет свободную рассадку, возвращаем пустой массив зон
-    if (event.seatingType === 'free') {
-      return res.status(200).json({
-        status: 'success',
-        seatingType: event.seatingType,
-        freeSeating: event.freeSeating,
-        zones: []
-      });
-    }
-
-    // Для зональной рассадки получаем информацию о занятых местах
-    const zonesWithOccupancy = await Promise.all(
-      event.zones.map(async (zone) => {
-        const ticketsSold = await Ticket.countDocuments({
-          event: eventId,
-          zone: zone.name,
-          status: { $in: ['Активен', 'Забронирован'] }
-        });
-        
-        return {
-          _id: zone._id || zone.name,
-          name: zone.name,
-          price: zone.price,
-          capacity: zone.capacity,
-          rows: zone.rows,
-          seatsPerRow: zone.seatsPerRow,
-          color: zone.color,
-          ticketsSold: ticketsSold,
-          ticketsAvailable: zone.capacity - ticketsSold
-        };
-      })
-    );
-
-    res.status(200).json({
-      status: 'success',
-      seatingType: event.seatingType,
-      freeSeating: event.freeSeating,
-      zones: zonesWithOccupancy
-    });
-
-  } catch (error) {
-    console.error('Ошибка при получении зон мероприятия:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении информации о зонах'
-    });
-  }
-});
 
 // Маршруты для работы с профилем пользователя
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
@@ -1420,165 +1274,12 @@ app.get('/profile', async (req, res) => {
   }
 });
 
-// Получение всех мероприятий из MongoDB
-app.get('/api/events', async (req, res) => {
-  try {
-    const events = await Event.find().populate('createdBy', 'name email');
-    res.status(200).json({
-      status: 'success',
-      message: 'Мероприятия успешно получены',
-      events
-    });
-  } catch (error) {
-    console.error('Ошибка при получении мероприятий:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении мероприятий'
-    });
-  }
-});
 
 // Создание мероприятия
 // Создание мероприятия
-app.post('/api/events', authenticateToken, async (req, res) => {
-  try {
-    const eventData = {
-      ...req.body,
-      createdBy: req.user._id
-    };
-    
-    // Валидация обязательных полей
-    if (!eventData.title || !eventData.description || !eventData.category || 
-        !eventData.date || !eventData.time || !eventData.venue || 
-        !eventData.address || !eventData.city || !eventData.capacity) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Заполните все обязательные поля'
-      });
-    }
-    
-    // Валидация для зональной системы
-    if (eventData.seatingType === 'zones') {
-      if (!eventData.zones || eventData.zones.length === 0) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Добавьте хотя бы одну зону для зональной рассадки'
-        });
-      }
-      
-      // Проверяем каждую зону
-      for (const zone of eventData.zones) {
-        if (!zone.name || zone.price === undefined || zone.capacity === undefined) {
-          return res.status(400).json({
-            status: 'error',
-            message: 'Заполните все поля для каждой зоны'
-          });
-        }
-        
-        if (zone.price < 0) {
-          return res.status(400).json({
-            status: 'error',
-            message: `Цена в зоне "${zone.name}" не может быть отрицательной`
-          });
-        }
-        
-        if (zone.capacity < 1) {
-          return res.status(400).json({
-            status: 'error',
-            message: `Вместимость в зоне "${zone.name}" должна быть положительной`
-          });
-        }
-      }
-    } else {
-      // Для свободной рассадки проверяем цену
-      if (!eventData.freeSeating || eventData.freeSeating.price === undefined) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Укажите цену для свободной рассадки'
-        });
-      }
-      
-      if (eventData.freeSeating.price < 0) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Цена не может быть отрицательной'
-        });
-      }
-    }
-    
-    // Преобразование даты в объект Date
-    eventData.date = new Date(eventData.date);
-    
-    // Проверка, что дата не в прошлом
-    if (eventData.date < new Date()) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Дата мероприятия не может быть в прошлом'
-      });
-    }
-    
-    // Генерируем уникальный eventId
-    eventData.eventId = await generateEventId();
-    
-    const newEvent = await Event.create(eventData);
-    await newEvent.populate('createdBy', 'name email');
-    
-    res.status(201).json({
-      status: 'success',
-      message: 'Мероприятие успешно создано',
-      event: newEvent
-    });
 
-    console.log(`Создано новое мероприятие: ${newEvent.title} (ID: ${newEvent.eventId})`);
-
-  } catch (error) {
-    console.error('Ошибка при создании мероприятия:', error);
-    
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        status: 'error',
-        message: 'Ошибка валидации',
-        errors
-      });
-    }
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Мероприятие с таким ID уже существует'
-      });
-    }
-    
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при создании мероприятия'
-    });
-  }
-});
 
 // Получение популярных мероприятий (ближайшие 6)
-app.get('/api/events/popular', async (req, res) => {
-  try {
-    const currentDate = new Date();
-    
-    const events = await Event.find({ date: { $gte: currentDate } })
-      .populate('createdBy', 'name email')
-      .sort({ date: 1, createdAt: -1 })
-      .limit(6);
-    
-    res.status(200).json({
-      status: 'success',
-      events
-    });
-  } catch (error) {
-    console.error('Ошибка при получении популярных мероприятий:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении мероприятий'
-    });
-  }
-});
 
 // Чиним покупку билетов
 
@@ -2042,31 +1743,18 @@ app.patch('/api/tickets/:ticketCode/status', authenticateToken, async (req, res)
 });
 
 // Получение мероприятий по категории из MongoDB
-app.get('/api/events/category/:category', async (req, res) => {
-  try {
-    const category = req.params.category;
-    const events = await Event.find({ category }).populate('createdBy', 'name email');
-    
-    res.status(200).json({
-      status: 'success',
-      message: `Мероприятия категории ${category} успешно получены`,
-      events
-    });
-  } catch (error) {
-    console.error('Ошибка при получении мероприятий по категории:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении мероприятий по категории'
-    });
-  }
-});
+
+
 app.use('/api/tickets/scan', authenticateToken, requireAdminOrOrganizer);
 app.use('/api/tickets/check/:ticketCode', authenticateToken, requireAdminOrOrganizer);
 app.use('/scan-qr', authenticateToken, requireAdminOrOrganizer);
 
 // Подключение роутеров
 const authRoutes = require('./server/routes/authRoutes');
+const eventRoutes = require('./server/routes/eventRoutes');
+
 app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
 
 // Страница покупки билета
 app.get('/event/:id/tickets', async (req, res) => {
@@ -2399,33 +2087,6 @@ const generateEventId = async () => {
 };
 
 // Получение мероприятий пользователя из MongoDB
-app.get('/api/events/user/:userId', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    
-    // Проверяем, что пользователь запрашивает свои собственные мероприятия
-    if (req.user._id.toString() !== userId && !req.user.isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Недостаточно прав для просмотра этих мероприятий'
-      });
-    }
-    
-    const events = await Event.find({ createdBy: userId }).populate('createdBy', 'name email');
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'Мероприятия пользователя успешно получены',
-      events
-    });
-  } catch (error) {
-    console.error('Ошибка при получении мероприятий пользователя:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Ошибка сервера при получении мероприятий пользователя'
-    });
-  }
-});
 
 
 
