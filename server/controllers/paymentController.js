@@ -6,18 +6,17 @@ const { generateTicketCode } = require('../utils/idGenerator');
 const createPayment = async (req, res) => {
   try {
     const { eventId, quantity = 1, paymentMethod = 'mock' } = req.body;
+    console.log('Создание платежа:', { eventId, quantity, paymentMethod });
 
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ status: 'error', message: 'Мероприятие не найдено' });
     }
 
-    const ticketsSold = await Ticket.countDocuments({ event: eventId });
-    if (ticketsSold + quantity > event.capacity) {
-      return res.status(400).json({ status: 'error', message: 'Недостаточно доступных билетов' });
-    }
+    // ВРЕМЕННО: принудительная цена
+    const amount = 100 * quantity;
+    console.log('Принудительная цена (тест):', amount);
 
-    const amount = event.price * quantity;
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -34,7 +33,6 @@ const createPayment = async (req, res) => {
       status: 'pending'
     });
 
-    // Для mock-платежа сразу создаём билеты
     if (paymentMethod === 'mock') {
       const tickets = [];
       for (let i = 0; i < quantity; i++) {
@@ -43,7 +41,7 @@ const createPayment = async (req, res) => {
           code: ticketCode,
           event: eventId,
           user: req.user._id,
-          price: event.price,
+          price: 100,
           status: 'Активен'
         });
         tickets.push(ticket);
@@ -65,6 +63,7 @@ const createPayment = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Ошибка создания платежа:', error);
     res.status(500).json({ status: 'error', message: error.message });
   }
 };

@@ -35,7 +35,7 @@ const PaymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['stripe', 'yookassa', 'bank_card', 'sberbank', 'qiwi', 'apple_pay', 'google_pay', null],
+    enum: ['stripe', 'yookassa', 'bank_card', 'sberbank', 'qiwi', 'apple_pay', 'google_pay', 'mock', null],
     default: null
   },
   description: {
