@@ -12,7 +12,7 @@ async function initApp() {
   }
   
   updateUI();
-   setupEventFilters();
+  //  setupEventFilters();
 
   
   // Загрузка мероприятий
@@ -476,12 +476,12 @@ function applySorting(sortType) {
 
 // Обновляем все функции для использования apiFetch
 // Загрузка мероприятий
+
 async function loadEvents() {
   try {
     console.log('Загрузка мероприятий...');
     
-    // Загружаем популярные мероприятия для главной страницы
-    const response = await fetch('/api/events/popular');
+    const response = await fetch('/api/events');
     const result = await response.json();
     
     if (result.status === 'success') {
@@ -489,14 +489,19 @@ async function loadEvents() {
     } else {
       console.error('Ошибка загрузки мероприятий:', result.message);
       notifications.error('Ошибка', 'Не удалось загрузить мероприятия');
-      
-      // Показываем заглушку
       showEmptyEventsState();
     }
   } catch (error) {
     console.error('Ошибка сети при загрузке мероприятий:', error);
     notifications.error('Ошибка', 'Не удалось загрузить мероприятия');
     showEmptyEventsState();
+  }
+}
+
+function showEmptyEventsState() {
+  const eventsGrid = document.querySelector('.events-grid');
+  if (eventsGrid) {
+    eventsGrid.innerHTML = '<div class="no-events"><i class="fas fa-calendar-times"></i><h3>Мероприятий не найдено</h3><p>Попробуйте позже или создайте мероприятие</p></div>';
   }
 }
 

@@ -1,4 +1,9 @@
-
+// Заглушка для updateMaxTickets
+function updateMaxTickets() {
+    const maxTicketsEl = document.getElementById("maxTickets");
+    if (!maxTicketsEl) return;
+    maxTicketsEl.textContent = currentEvent?.ticketsAvailable || 0;
+}
 
 // Упрощенное отображение билетов
 function displayTickets(tickets) {
@@ -287,15 +292,9 @@ if (selectedOption && selectedOption.dataset) {
         console.log('Ответ сервера:', result);
 
         if (result.status === 'success') {
-            // ПОКАЗЫВАЕМ МОДАЛЬНОЕ ОКНО УСПЕХА
             showPurchaseSuccess(result.tickets);
-            
-            // Оповещаем пользователя
             notifications.success('Успех!', `Вы успешно приобрели ${currentQuantity} билет(ов)`);
-            
-            // Обновляем доступные билеты
-            await loadEventInfo(currentEvent.eventId || currentEvent._id);
-            
+            // Не обновляем страницу, просто показываем успех
         } else {
             alert('Ошибка покупки: ' + (result.message || 'Неизвестная ошибка'));
         }

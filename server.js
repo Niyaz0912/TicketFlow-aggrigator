@@ -43,11 +43,12 @@ app.get('/admin', (req, res) => {
 app.get('/event/:id/tickets', async (req, res) => {
   try {
     const Event = require('./server/models/Event');
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findOne({ eventId: req.params.id });
     if (!event) return res.status(404).send('Мероприятие не найдено');
     res.sendFile(path.join(__dirname, 'client', 'ticket-purchase.html'));
   } catch (error) {
-    res.status(500).send('Ошибка сервера');
+    console.error('Ошибка загрузки страницы покупки:', error);
+    res.status(500).send('Ошибка сервера: ' + error.message);
   }
 });
 
