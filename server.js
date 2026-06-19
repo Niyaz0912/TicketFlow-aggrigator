@@ -18,6 +18,9 @@ app.use(express.urlencoded({ extended: true }));
 // Подключение к БД
 connectDB();
 
+// ✅ СТАТИЧЕСКИЕ ФАЙЛЫ — ДОЛЖНЫ БЫТЬ ПЕРВЫМИ (перед роутерами и 404)
+app.use(express.static(path.join(__dirname, 'client')));
+
 // Подключение роутеров
 const authRoutes = require('./server/routes/authRoutes');
 const eventRoutes = require('./server/routes/eventRoutes');
@@ -29,9 +32,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// Статические страницы
-app.use(express.static(path.join(__dirname, 'client')));
-
+// --- Страницы (HTML) ---
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
@@ -44,7 +45,9 @@ app.get('/event/:id/tickets', async (req, res) => {
   try {
     const Event = require('./server/models/Event');
     const event = await Event.findOne({ eventId: req.params.id });
-    if (!event) return res.status(404).send('Мероприятие не найдено');
+    if (!event) {
+      return res.status(404).send('Мероприятие не найдено');
+    }
     res.sendFile(path.join(__dirname, 'client', 'ticket-purchase.html'));
   } catch (error) {
     console.error('Ошибка загрузки страницы покупки:', error);
@@ -64,7 +67,7 @@ app.get('/scan-qr', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'qr-scanner.html'));
 });
 
-// 404
+// ✅ 404 — ТОЛЬКО ПОСЛЕ ВСЕХ МАРШРУТОВ
 app.use('*', (req, res) => {
   res.status(404).json({ status: 'error', message: 'Маршрут не найден' });
 });

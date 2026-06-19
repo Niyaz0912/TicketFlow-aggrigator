@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои билеты - TicketFlow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .tickets-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .tickets-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .tickets-grid {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .ticket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #3a86ff;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .ticket-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .ticket-code {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #3a86ff;
+        }
+        
+        .ticket-status {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-used {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status-invalid {
+            background: #f44336;
+            color: white;
+        }
+        
+        .ticket-info {
+            margin-bottom: 20px;
+        }
+        
+        .ticket-event {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .ticket-detail {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #666;
+        }
+        
+        .ticket-detail i {
+            width: 20px;
+            margin-right: 12px;
+            color: #3a86ff;
+        }
+        
+        .ticket-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ff006e;
+            margin: 15px 0;
+        }
+        
+        .ticket-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3a86ff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2a75f0;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .no-tickets {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .no-tickets i {
+            font-size: 64px;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error-message {
+            background: #ffe6e6;
+            color: #d32f2f;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+        }
+        
+        @media (max-width: 768px) {
+            .ticket-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .ticket-actions {
+                flex-direction: column;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo" onclick="window.location.href='/'">Ticket<span>Flow</span></div>
+                <nav>
+                    <ul>
+                        <li><a href="/">Главная</a></li>
+                        <li><a href="#" onclick="window.history.back()">Назад</a></li>
+                    </ul>
+                </nav>
+                <div class="header-buttons" id="headerButtons">
+                    <!-- Будет заполнено скриптом -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="tickets-container">
+            <div class="tickets-header">
+                <h1>Мои билеты</h1>
+                <p>Здесь вы можете просмотреть все ваши приобретенные билеты</p>
+            </div>
+            
+            <div id="authRequired" style="display: none;">
+                <div class="error-message">
+                    <h3>Требуется авторизация</h3>
+                    <p>Для просмотра билетов необходимо войти в систему</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/?login=true'">
+                        Войти в систему
+                    </button>
+                </div>
+            </div>
+            
+            <div id="ticketsContent" style="display: none;">
+                <div class="filter-bar">
+    <select id="statusFilter" class="filter-select" onchange="loadTickets()">
+        <option value="all">Все статусы</option>
+        <option value="Активен">Активные</option>
+        <option value="Использован">Использованные</option>
+        <option value="Недействителен">Недействительные</option>
+    </select>
+    
+    <select id="sortFilter" class="filter-select" onchange="applySorting()">
+        <option value="newest">Сначала новые</option>
+        <option value="oldest">Сначала старые</option>
+        <option value="eventDate">По дате мероприятия</option>
+        <option value="priceHigh">По цене (↓)</option>
+        <option value="priceLow">По цене (↑)</option>
+    </select>
+    
+    <span id="ticketsCount">Загрузка...</span>
+</div>
+                
+                <div id="ticketsList" class="tickets-grid">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Загрузка билетов...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>О нас</h3>
+                    <ul>
+                        <li><a href="#">О компании</a></li>
+                        <li><a href="#">Контакты</a></li>
+                        <li><a href="#">Партнеры</a></li>
+                        <li><a href="#">Рекламодателям</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Помощь</h3>
+                    <ul>
+                        <li><a href="#">Как купить билет</a></li>
+                        <li><a href="#">Вопросы и ответы</a></li>
+                        <li><a href="#">Правила использования</a></li>
+                        <li><a href="#">Политика конфиденциальности</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Контакты</h3>
+                    <ul>
+                        <li>Телефон: +7 (747) 408 6911</li>
+                        <li>Email: info@ticketflow.kz</li>
+                        <li>Адрес: Актобе, ул. Абылхаир-хана, д. 52а</li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Подписка</h3>
+                    <p>Подпишитесь на рассылку, чтобы получать информацию о новых мероприятиях и акциях</p>
+                    <form>
+                        <input type="email" placeholder="Ваш email" style="padding: 10px; width: 100%; margin: 10px 0; border-radius: 4px; border: none;">
+                        <button type="submit" class="search-btn" style="margin-top: 10px;">Подписаться</button>
+                    </form>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>© 2023 TicketFlow. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script src="js/tickets.js"></script>
+    <script>
+        // УДАЛЯЕМ это объявление:
+// let auth = null;
+
+// Вместо этого используем существующий объект auth из auth.js
+document.addEventListener('DOMContentLoaded', async function() {
+    // Проверяем, загружен ли auth.js
+    if (typeof auth === 'undefined') {
+        // Если auth.js не загружен, создаем простой объект
+        window.auth = {
+            isAuthenticated: () => !!localStorage.getItem('token'),
+            token: localStorage.getItem('token'),
+            user: JSON.parse(localStorage.getItem('user') || '{}'),
+            logout: function() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            }
+        };
+    }
+    
+    await initPage();
+});
+        
+        // Инициализация страницы
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Ждем загрузки auth.js
+            if (typeof Auth !== 'undefined') {
+                auth = new Auth();
+            } else {
+                // Fallback: создаем простой объект auth
+                auth = {
+                    isAuthenticated: () => !!localStorage.getItem('token'),
+                    token: localStorage.getItem('token'),
+                    user: JSON.parse(localStorage.getItem('user') || '{}')
+                };
+            }
+            
+            await initPage();
+        });
+        
+        // Инициализация страницы
+        async function initPage() {
+            updateUI();
+            
+            if (auth.isAuthenticated()) {
+                await loadTickets();
+            }
+        }
+        
+        // Обновление интерфейса
+        function updateUI() {
+            const authRequired = document.getElementById('authRequired');
+            const ticketsContent = document.getElementById('ticketsContent');
+            const headerButtons = document.getElementById('headerButtons');
+            
+            if (auth.isAuthenticated()) {
+                authRequired.style.display = 'none';
+                ticketsContent.style.display = 'block';
+                
+                // Показываем пользовательское меню
+                headerButtons.innerHTML = `
+                    <div class="user-menu">
+                        <div class="user-avatar">${auth.user.name?.charAt(0)?.toUpperCase() || 'U'}</div>
+                        <span>${auth.user.name || 'Пользователь'}</span>
+                        <div class="user-dropdown">
+                            <a href="/"><i class="fas fa-home"></i> На главную</a>
+                            <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                authRequired.style.display = 'block';
+                ticketsContent.style.display = 'none';
+                
+                // Показываем кнопки авторизации
+                headerButtons.innerHTML = `
+                    <div class="auth-buttons">
+                        <button class="login-btn" onclick="window.location.href='/?login=true'">Войти</button>
+                        <button class="register-btn" onclick="window.location.href='/?register=true'">Регистрация</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Функция диагностики
+async function debugTickets() {
+    console.clear();
+    console.log('=== ДИАГНОСТИКА БИЛЕТОВ ===');
+    console.log('Токен:', auth.token ? 'Присутствует' : 'Отсутствует');
+    console.log('Пользователь:', auth.user);
+    
+    // Тестовый запрос к API
+    try {
+        console.log('Тестирование API...');
+        const response = await fetch('/api/tickets/my', {
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        });
+        
+        console.log('Статус ответа:', response.status);
+        console.log('Заголовки:', Object.fromEntries([...response.headers]));
+        
+        const data = await response.json();
+        console.log('Данные ответа:', data);
+        
+        if (data.status === 'success') {
+            console.log('Билеты в ответе:', data.tickets);
+            alert('Диагностика завершена. Проверьте консоль (F12)');
+        } else {
+            console.error('Ошибка в ответе:', data.message);
+            alert('Ошибка API: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Ошибка диагностики:', error);
+        alert('Ошибка диагностики: ' + error.message);
+    }
+}
+        // Загрузка билетов
+        async function loadTickets() {
+            const ticketsList = document.getElementById('ticketsList');
+            ticketsList.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Загрузка билетов...</p>
+                </div>
+            `;
+            
+            try {
+                const statusFilter = document.getElementById('statusFilter').value;
+                const sortFilter = document.getElementById('sortFilter').value;
+                
+                let url = '/api/tickets/my';
+                if (statusFilter !== 'all') {
+                    url += `?status=${statusFilter}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${auth.token}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    window.location.href = '/';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки билетов');
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayTickets(data.tickets, sortFilter);
+                } else {
+                    throw new Error(data.message || 'Ошибка загрузки билетов');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                ticketsList.innerHTML = `
+                    <div class="error-message">
+                        <h3>Ошибка загрузки</h3>
+                        <p>${error.message || 'Не удалось загрузить билеты'}</p>
+                        <button class="btn btn-primary" onclick="loadTickets()">
+                            Попробовать снова
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+
+        // Функция для применения сортировки к уже загруженным билетам
+function applySorting() {
+    const sortFilter = document.getElementById('sortFilter').value;
+    const ticketsList = document.getElementById('ticketsList');
+    
+    // Сохраняем текущие билеты из DOM
+    const ticketElements = ticketsList.querySelectorAll('.ticket-card');
+    if (ticketElements.length === 0) return;
+    
+    // Преобразуем DOM элементы в данные для сортировки
+    const ticketsData = Array.from(ticketElements).map(element => {
+        return {
+            element: element,
+            purchaseDate: element.querySelector('[data-purchase-date]')?.dataset.purchaseDate,
+            eventDate: element.querySelector('[data-event-date]')?.dataset.eventDate,
+            price: parseInt(element.querySelector('.ticket-price')?.textContent.replace(/\D/g, '') || 0)
+        };
+    });
+    
+    // Сортируем данные
+    switch (sortFilter) {
+        case 'newest':
+            ticketsData.sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate));
+            break;
+        case 'oldest':
+            ticketsData.sort((a, b) => new Date(a.purchaseDate) - new Date(b.purchaseDate));
+            break;
+        case 'eventDate':
+            ticketsData.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+            break;
+        case 'priceHigh':
+            ticketsData.sort((a, b) => b.price - a.price);
+            break;
+        case 'priceLow':
+            ticketsData.sort((a, b) => a.price - b.price);
+            break;
+    }
+    
+    // Переставляем элементы в DOM согласно сортировке
+    ticketsData.forEach(item => {
+        ticketsList.appendChild(item.element);
+    });
+}
+        // Отображение билетов
+        // Заменяем функцию displayTickets на исправленную версию
+    // Альтернативная улучшенная версия displayTickets
+function displayTickets(tickets, sortFilter = 'newest') {
+    const ticketsList = document.getElementById('ticketsList');
+    const ticketsCount = document.getElementById('ticketsCount');
+    
+    ticketsCount.textContent = `Найдено билетов: ${tickets.length}`;
+    
+    if (tickets.length === 0) {
+        ticketsList.innerHTML = `
+            <div class="no-tickets">
+                <i class="fas fa-ticket-alt"></i>
+                <h3>Билетов не найдено</h3>
+                <p>У вас пока нет билетов с выбранным фильтром</p>
+                <button class="btn btn-primary" onclick="window.location.href='/'">
+                    Найти мероприятия
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Функция для безопасного получения даты
+    const getDate = (ticket, type) => {
+        try {
+            if (type === 'purchase') {
+                return new Date(ticket.purchaseDate || ticket.createdAt || Date.now());
+            }
+            if (type === 'event') {
+                return new Date(ticket.event?.date || ticket.eventDate || Date.now());
+            }
+            return new Date();
+        } catch (e) {
+            return new Date();
+        }
+    };
+    
+    // Функция для безопасного получения цены
+    const getPrice = (ticket) => {
+        return parseInt(ticket.price) || 0;
+    };
+    
+    // Сортировка
+    const sortedTickets = [...tickets].sort((a, b) => {
+        switch (sortFilter) {
+            case 'newest':
+                return getDate(b, 'purchase') - getDate(a, 'purchase');
+            case 'oldest':
+                return getDate(a, 'purchase') - getDate(b, 'purchase');
+            case 'eventDate':
+                return getDate(a, 'event') - getDate(b, 'event');
+            case 'priceHigh':
+                return getPrice(b) - getPrice(a);
+            case 'priceLow':
+                return getPrice(a) - getPrice(b);
+            default:
+                return 0;
+        }
+    });
+    
+    // Отображение
+    ticketsList.innerHTML = sortedTickets.map(ticket => {
+        const eventDate = getDate(ticket, 'event').toLocaleDateString('ru-RU');
+        const purchaseDate = getDate(ticket, 'purchase').toLocaleDateString('ru-RU');
+        const price = getPrice(ticket);
+        
+        return `
+            <div class="ticket-card">
+                <div class="ticket-header">
+                    <div class="ticket-code">${ticket.code || 'N/A'}</div>
+                    <div class="ticket-status status-${getStatusClass(ticket.status)}">
+                        ${ticket.status || 'Активен'}
+                    </div>
+                </div>
+                
+                <div class="ticket-info">
+                    <div class="ticket-event">${ticket.event?.title || 'Мероприятие'}</div>
+                    
+                    <div class="ticket-detail">
+                        <i class="fas fa-calendar"></i>
+                        <span data-event-date="${getDate(ticket, 'event').toISOString()}">
+                            ${eventDate} ${ticket.event?.time || ''}
+                        </span>
+                    </div>
+                    
+                    <div class="ticket-detail">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>${ticket.event?.venue || 'Место'}${ticket.event?.city ? ', ' + ticket.event.city : ''}</span>
+                    </div>
+                    
+                    <div class="ticket-detail">
+                        <i class="fas fa-chair"></i>
+                        <span>${ticket.seat || 'Место не указано'}</span>
+                    </div>
+                    
+                    <div class="ticket-detail">
+                        <i class="fas fa-clock"></i>
+                        <span data-purchase-date="${getDate(ticket, 'purchase').toISOString()}">
+                            Куплен: ${purchaseDate}
+                        </span>
+                    </div>
+                    
+                    <div class="ticket-price">
+                        ${price} тг.
+                    </div>
+                </div>
+                ${ticket.qrCode ? `
+              <div class="ticket-qr">
+                <img src="${ticket.qrCode}" alt="QR-код билета" style="max-width: 120px;">
+                <p class="qr-hint">Покажите этот QR-код на входе</p>
+              </div>
+            ` : ''}
+                
+                <div class="ticket-actions">
+                    <button class="btn btn-primary" onclick="viewTicket('${ticket._id}')">
+                        <i class="fas fa-eye"></i> Подробнее
+                    </button>
+                    <button class="btn btn-secondary" onclick="saveTicket('${ticket.code}')">
+                        <i class="fas fa-download"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+        
+        // Вспомогательные функции
+        function getStatusClass(status) {
+            const statusMap = {
+                'Активен': 'active',
+                'Использован': 'used',
+                'Недействителен': 'invalid'
+            };
+            return statusMap[status] || 'active';
+        }
+        
+        // Просмотр деталей билета
+        async function viewTicket(ticketId) {
+            try {
+                const response = await fetch(`/api/tickets/${ticketId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${auth.token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showTicketDetails(data.ticket);
+                } else {
+                    alert('Ошибка загрузки деталей билета');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка загрузки деталей билета');
+            }
+        }
+        
+        // Показ деталей билета
+        function showTicketDetails(ticket) {
+            const eventDate = ticket.event?.date ? new Date(ticket.event.date).toLocaleDateString('ru-RU') : 'Не указана';
+            const purchaseDate = new Date(ticket.purchaseDate).toLocaleDateString('ru-RU');
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                    <h2>Детали билета #${ticket.code}</h2>
+                    
+                    <div style="margin: 20px 0;">
+                        <p><strong>Мероприятие:</strong> ${ticket.event?.title || 'Не указано'}</p>
+                        <p><strong>Дата:</strong> ${eventDate} ${ticket.event?.time || ''}</p>
+                        <p><strong>Место:</strong> ${ticket.event?.venue || 'Не указано'}${ticket.event?.city ? ', ' + ticket.event.city : ''}</p>
+                        <p><strong>Адрес:</strong> ${ticket.event?.address || 'Не указан'}</p>
+                        <p><strong>Место:</strong> ${ticket.seat || 'Не указано'}</p>
+                        <p><strong>Цена:</strong> ${ticket.price} тг.</p>
+                        <p><strong>Статус:</strong> ${ticket.status}</p>
+                        <p><strong>Дата покупки:</strong> ${purchaseDate}</p>
+                    </div>
+                    
+                    <button onclick="this.closest('div[style]').remove()" 
+                            style="padding: 10px 20px; background: #3a86ff; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        Закрыть
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        // Сохранение билета
+        function saveTicket(ticketCode) {
+            const content = `
+                БИЛЕТ #${ticketCode}
+                ----------------------------
+                Сохранено: ${new Date().toLocaleDateString('ru-RU')}
+                
+                Предъявите этот код на входе.
+            `;
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `билет-${ticketCode}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`Билет ${ticketCode} сохранен!`);
+        }
+
+        // Загрузка билетов с улучшенной диагностикой
+// Обновляем функцию loadTickets
+async function loadTickets() {
+    const ticketsList = document.getElementById('ticketsList');
+    ticketsList.innerHTML = `
+        <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Загрузка билетов...</p>
+        </div>
+    `;
+    
+    try {
+        const statusFilter = document.getElementById('statusFilter').value;
+        
+        let url = '/api/tickets/my';
+        if (statusFilter !== 'all') {
+            url += `?status=${statusFilter}`;
+        }
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        });
+        
+        if (response.status === 401) {
+            alert('Сессия истекла. Пожалуйста, войдите снова.');
+            window.location.href = '/';
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error('Ошибка загрузки билетов');
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Сохраняем билеты в глобальную переменную для сортировки
+            window.userTickets = data.tickets;
+            
+            const sortFilter = document.getElementById('sortFilter').value;
+            displayTickets(data.tickets, sortFilter);
+        } else {
+            throw new Error(data.message || 'Ошибка загрузки билетов');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        ticketsList.innerHTML = `
+            <div class="error-message">
+                <h3>Ошибка загрузки</h3>
+                <p>${error.message || 'Не удалось загрузить билеты'}</p>
+                <button class="btn btn-primary" onclick="loadTickets()">
+                    Попробовать снова
+                </button>
+            </div>
+        `;
+    }
+}
+        
+        // Выход
+        function logout() {
+            if (typeof auth.logout === 'function') {
+                auth.logout();
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
